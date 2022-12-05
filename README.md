@@ -7,7 +7,7 @@ Surge 脚本
 ### 国家图书馆 - 预约入馆
 
 ```
-https://raw.githubusercontent.com/romoo/surge-scripts/main/scripts/nlc.sgmodule
+https://raw.githubusercontent.com/romoo/surge-scripts/main/modules/nlc.sgmodule
 ```
 
 需配合「脚本」和「MitM」使用。第一次使用需要先打开「国家图书馆」公众号预约页面，脚本会自动记录 Cookies。
