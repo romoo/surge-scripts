@@ -1,18 +1,14 @@
 /*
-国家图书馆预约入馆
-
-【Surge】
+国家图书馆预约监控
 -----------------
 [Script]
-国家图书馆获取Cookie = type=http-request, pattern=https:\/\/gtweixin.nlc.cn\/subscribe$, script-path=https://raw.githubusercontent.com/romoo/surge-scripts/main/scripts/nlc.js, requires-body=true
-
 国家图书馆预约监控 = type=cron, cronexp=* 9-21 * * *, script-path=https://raw.githubusercontent.com/romoo/surge-scripts/main/scripts/nlc.js
 
 [MITM]
 hostname = %APPEND% gtweixin.nlc.cn
 */
 
-let $cookie = $persistentStore.read('nlc-cookies');
+const $cookie = $persistentStore.read('nlc-cookies');
 console.log(`Cookie: ${$cookie}`);
 
 const timestamp = Date.parse(new Date());
@@ -23,7 +19,7 @@ console.log(`date: ${date}`);
 
 !(async () => {
   if (!$cookie) {
-    getCookie();
+    $notification.post('国家图书馆', '❌ 获取 Cookies 失败，请手动打开公众号内预定页面', '');
   } else {
     await booking();
   }
@@ -91,9 +87,9 @@ function isDateAvailable(date) {
   return true;
 }
 
-function generateHeaders(cookie) {
+function generateHeaders() {
   return {
-    'Cookie': cookie,
+    'Cookie': $cookie,
     'Host': 'gtweixin.nlc.cn',
     'Connection': 'keep-alive',
     'Accept-Language': 'zh-CN,zh-Hans;q=0.9',
@@ -111,7 +107,7 @@ function setAgreement() {
   const option = {
     url,
     headers: {
-      ...generateHeaders($cookie),
+      ...generateHeaders(),
       'Content-Type': 'application/x-www-form-urlencoded;',
     },
   };
@@ -134,7 +130,7 @@ function checkSchedule() {
   const url = `https://gtweixin.nlc.cn/subscribe/index/get.html?t=${timestamp}`;
   const option = {
     url,
-    headers: generateHeaders($cookie),
+    headers: generateHeaders(),
   };
   return new Promise((resolve) => {
     $httpClient.get(option, (err, res, data) => {
@@ -166,7 +162,7 @@ function getTimetableId() {
   const url = 'https://gtweixin.nlc.cn/subscribe/order.html';
   const option = {
     url,
-    headers: generateHeaders($cookie),
+    headers: generateHeaders(),
   };
   return new Promise((resolve) => {
     $httpClient.get(option, (err, res, data) => {
@@ -188,9 +184,7 @@ function getVenue(timeTableId, indx) {
   const url = `https://gtweixin.nlc.cn/subscribe/order/subscribe.html?day=${date}&timetableId=${timeTableId}&indx=${indx}&${timestamp}`;
   const option = {
     url,
-    headers: {
-      ...generateHeaders($cookie),
-    },
+    headers: generateHeaders(),
   };
   return new Promise((resolve) => {
     $httpClient.post(option, (err, res, data) => {
@@ -218,7 +212,7 @@ function getTimeSlot(timeTableId, venue) {
   const url = `https://gtweixin.nlc.cn/subscribe/order/timeslot.html?timetableId=${timeTableId}&venue=${venue}&t=${timestamp}`;
   const option = {
     url,
-    headers: generateHeaders($cookie),
+    headers: generateHeaders(),
   };
   return new Promise((resolve) => {
     $httpClient.get(option, (err, res, data) => {
@@ -241,7 +235,7 @@ function prepareOrder(timeTableId, venue, timeSlot) {
   const url = `https://gtweixin.nlc.cn/subscribe/order/tips.html?day=${date}&timetableId=${timeTableId}&venue=${venue}&timeslot=${timeSlot}&order_type=10&t=${timestamp}`;
   const option = {
     url,
-    headers: generateHeaders($cookie),
+    headers: generateHeaders(),
   };
   return new Promise((resolve) => {
     $httpClient.get(option, (err, res, data) => {
@@ -265,7 +259,7 @@ function createOrder(timeTableId, venue, timeSlot) {
   const option = {
     url,
     headers: {
-      ...generateHeaders($cookie),
+      ...generateHeaders(),
       'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
     },
   };
@@ -296,7 +290,7 @@ function checkOrder(orderId) {
   const url = `https://gtweixin.nlc.cn/subscribe/order/chk.html?orderId=${orderId}&t=${timestamp}`;
   const option = {
     url,
-    headers: generateHeaders($cookie),
+    headers: generateHeaders(),
   };
   return new Promise((resolve) => {
     $httpClient.get(option, (err, res, data) => {
@@ -313,22 +307,6 @@ function checkOrder(orderId) {
       resolve(false);
     })
   })
-}
-
-function getCookie() {
-  if (
-    $request &&
-    $request.method != 'OPTIONS' &&
-    $request.url.match(/subscribe/)
-  ) {
-    $cookie = $request.headers['Cookie'];
-    console.log($cookie);
-    $notification.post('国家图书馆', 'Cookies 获取成功🎉', $cookie);
-    $persistentStore.write($cookie, 'nlc-cookies');
-  } else {
-    $notification.post('国家图书馆', '❌ 获取 Cookies 失败，请手动打开公众号内预定页面', '');
-  }
-  $done({});
 }
 
 function isInOpenTime() {
